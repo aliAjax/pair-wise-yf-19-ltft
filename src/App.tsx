@@ -1,126 +1,57 @@
+import { useState } from "react";
 import "./styles.css";
-
-const project = {
-  "sourceNo": 9,
-  "id": "hxyfront-62007",
-  "port": 62007,
-  "title": "植物标本馆入库",
-  "domain": "植物标本馆",
-  "prompt": "开发一个植物标本馆压制标本入库前端项目，工作人员可以录入采集号、物种名称、采集地点、海拔、生境描述、采集人、压制状态、鉴定状态和馆藏位置。页面需要有入库队列、鉴定状态筛选、采集地点信息卡、馆藏柜位记录和单份标本详情页。",
-  "palette": [
-    "#166534",
-    "#0f766e",
-    "#ca8a04"
-  ],
-  "metrics": [
-    "入库队列",
-    "待鉴定",
-    "已上柜",
-    "采集点"
-  ],
-  "filters": [
-    "待压制",
-    "待鉴定",
-    "已入库",
-    "需补照"
-  ],
-  "fields": [
-    "采集号",
-    "物种名称",
-    "采集地点",
-    "海拔",
-    "生境描述",
-    "馆藏位置"
-  ],
-  "records": [
-    [
-      "HX-240615-01",
-      "槭属待定",
-      "海拔1420m",
-      "待鉴定"
-    ],
-    [
-      "HX-240615-08",
-      "蕨类",
-      "阴湿沟谷",
-      "已压制"
-    ],
-    [
-      "HX-240616-03",
-      "菊科",
-      "柜位B-12-04",
-      "已入库"
-    ]
-  ]
-};
+import { useArchive } from "./hooks/useArchive";
+import { clearArchive } from "./domain/archive";
+import { Metrics } from "./components/Metrics";
+import { FilterPanel } from "./components/FilterPanel";
+import { SpecimenForm } from "./components/SpecimenForm";
+import { RotationWorkbench } from "./components/RotationWorkbench";
+import { LocationCards } from "./components/LocationCards";
+import { CabinetRecords } from "./components/CabinetRecords";
+import { SpecimenDetail } from "./components/SpecimenDetail";
 
 function App() {
+  const { data, setData } = useArchive();
+  const [detailNo, setDetailNo] = useState<string | null>(null);
+
   return (
     <main className="app">
       <section className="hero">
-        <p>{project.id} · 源提示词{project.sourceNo} · Port {project.port}</p>
-        <h1>{project.title}</h1>
-        <span>{project.prompt}</span>
+        <p>hxyfront-62007 · 植物标本馆 · Port 62007</p>
+        <h1>植物标本馆入库 · 干燥轮换工作台</h1>
+        <span>
+          压好的标本凭采集号进入待干燥队列，逐次登记架位、翻面时间与称重：相邻两次不得停在同一架位，
+          重量连续两次没有下降即转待复压且不能送去鉴定；架位被占用或称得比上次重时本次不保存。
+          待复压标本补做一次明显减重后回到待鉴定。所有卡片、队列、柜位与详情页共用同一份浏览器数据。
+        </span>
       </section>
 
-      <section className="metrics">
-        {project.metrics.map((metric: string, index: number) => (
-          <article key={metric}>
-            <small>{metric}</small>
-            <strong>{[86, 14, 7, 32][index] ?? 12}</strong>
-          </article>
-        ))}
-      </section>
+      <div className="toolbar">
+        <button
+          onClick={() => {
+            if (window.confirm("确认恢复为初始演示资料？当前修改将被覆盖。")) {
+              setData(clearArchive());
+            }
+          }}
+        >
+          恢复演示数据
+        </button>
+        <span className="muted">数据保存在本浏览器 localStorage，重开仍可查询</span>
+      </div>
 
-      <section className="workspace">
-        <aside className="panel">
-          <h2>{project.domain}筛选</h2>
-          <div className="chips">
-            {project.filters.map((item: string) => (
-              <button key={item}>{item}</button>
-            ))}
-          </div>
-        </aside>
+      <Metrics data={data} />
 
-        <section className="panel form-panel">
-          <div className="heading">
-            <div>
-              <p>专业字段</p>
-              <h2>新增记录</h2>
-            </div>
-            <button className="primary">保存草稿</button>
-          </div>
-          <div className="field-grid">
-            {project.fields.map((field: string) => (
-              <label key={field}>
-                <span>{field}</span>
-                <input placeholder={"填写" + field} />
-              </label>
-            ))}
-          </div>
-        </section>
-      </section>
+      <RotationWorkbench data={data} setData={setData} onOpenDetail={setDetailNo} />
 
-      <section className="panel">
-        <div className="heading">
-          <div>
-            <p>历史记录</p>
-            <h2>近期工作台</h2>
-          </div>
-          <button>导出摘要</button>
-        </div>
-        <div className="records">
-          {project.records.map((record: string[], index: number) => (
-            <article key={record.join("-")}>
-              <b>{String(index + 1).padStart(2, "0")}</b>
-              <div>
-                <h3>{record[0]}</h3>
-                <p>{record.slice(1).join(" · ")}</p>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
+      <SpecimenForm data={data} setData={setData} />
+
+      <FilterPanel data={data} onOpenDetail={setDetailNo} />
+
+      <LocationCards data={data} onOpenDetail={setDetailNo} />
+
+      <CabinetRecords data={data} setData={setData} onOpenDetail={setDetailNo} />
+
+      <SpecimenDetail data={data} specimenNo={detailNo} onClose={() => setDetailNo(null)} />
     </main>
   );
 }
